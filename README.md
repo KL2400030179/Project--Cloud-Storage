@@ -24,7 +24,7 @@ Supabase Database
 IntelliVault UI
 ```
 
-The AI flow uses secure server-side secrets and authenticated calls. The browser extracts PDF text locally, sends only the extracted readable text to a Supabase Edge Function, and the function validates the user, ownership, and request size before asking the AI provider for a strict JSON result. Results are cached in the `files` table and reused when the document has not changed.
+The AI flow is implemented in the repository but requires deployed Supabase Edge Functions and server-side Gemini secrets. The browser extracts PDF text locally, sends only the extracted readable text to an authenticated function, and the function validates the user, ownership, and request size before asking the AI provider for a strict JSON result. Results are cached in the `files` table and reused when the document has not changed.
 
 ### Implemented
 
@@ -35,12 +35,11 @@ The AI flow uses secure server-side secrets and authenticated calls. The browser
 5. AI result caching using `ai_summary`, `ai_document_type`, `ai_suggested_category`, `ai_keywords`, and `ai_analyzed_at`
 6. RLS-based isolation so users only see their own AI metadata
 
-### Future Enhancements
+### Pending AI Enhancements
 
 - OCR for scanned PDFs without embedded text
 - Multi-document batch analysis
-- Shared AI prompts and saved summaries
-- Better confidence scoring and category refinement
+- Document question answering
 
 ### Backend deployment
 
@@ -48,14 +47,14 @@ The backend uses Supabase PostgreSQL, private Storage, row-level security, and a
 
 ```bash
 npx supabase login
-npx supabase link --project-ref YOUR_PROJECT_REF
+npx supabase link --project-ref wdyigxwsoqgcmupsungu
 npx supabase db push
 npx supabase secrets set GEMINI_API_KEY="YOUR_GEMINI_API_KEY" GEMINI_MODEL="YOUR_GEMINI_MODEL"
 npx supabase functions deploy analyze-document
 npx supabase functions deploy natural-language-search
 ```
 
-The migration creates the `files` and `activity_logs` tables, row-level policies, and a private `user-files` bucket with a 50 MB per-file limit. For manual SQL Editor setup, use [database/schema.sql](database/schema.sql) and [supabase/storage-policies.sql](supabase/storage-policies.sql).
+The migrations create file and activity tables, file-management metadata, row-level policies, and a private `user-files` bucket with a 50 MB per-file limit. They are provided for review and have not been run against the hosted project. For manual SQL Editor setup, run `database/schema.sql`, then `supabase/storage-policies.sql`, then `supabase/migrations/20261108163000_file_management.sql` in that order.
 
 Never commit a real provider key or Supabase secret/service-role key. Provider keys belong in Supabase Edge Function secrets; the browser uses only the Supabase publishable key.
 
@@ -78,6 +77,7 @@ Students and small teams often need a simple yet reliable cloud storage workflow
 - Secure logout
 - Private Supabase storage bucket named `user-files`
 - Drag-and-drop upload and click-to-select upload
+- Multiple file selection and sequential bulk uploads
 - Local file validation before upload
 - SHA-256 hashing in the browser with `crypto.subtle.digest()`
 - Duplicate detection using file hash comparison
@@ -86,6 +86,7 @@ Students and small teams often need a simple yet reliable cloud storage workflow
 - Search, filter, and sort
 - File preview for supported types
 - Download, share, and delete actions
+- Favorites and recycle-bin restore/permanent-delete flows
 - Recent activity log
 - Analytics panel and chart
 - Edge processing card in the dashboard
@@ -183,14 +184,14 @@ http://localhost:5500
 1. Create or use your existing Supabase project.
 2. Ensure the storage bucket `user-files` exists and remains private. The migration creates it.
 3. Add the existing Supabase URL and publishable key to the browser config from the current project.
-4. Apply the Supabase migrations with `npx supabase db push`, or run `database/schema.sql` followed by `supabase/storage-policies.sql` in the SQL editor.
+4. Review and apply the Supabase migrations with `npx supabase db push`, or run `database/schema.sql`, `supabase/storage-policies.sql`, and `supabase/migrations/20261108163000_file_management.sql` in that order in the SQL editor.
 
 ## AI Document Intelligence
 
-### IMPLEMENTED
+### Implemented
 
 1. Browser-side PDF text extraction with PDF.js
-2. AI document summarization through the `analyze-document` Supabase Edge Function
+2. AI document summarization through the `analyze-document` Supabase Edge Function (after deployment/configuration)
 3. Structured summary, key points, and AI-detected document type
 4. `AI_SUMMARY` activity logging for successfully generated summaries
 
@@ -216,7 +217,7 @@ For an existing vault PDF, IntelliVault downloads the private object for local t
 
 ```bash
 npx supabase login
-npx supabase link --project-ref YOUR_PROJECT_REF
+npx supabase link --project-ref wdyigxwsoqgcmupsungu
 ```
 
 5. Deploy the function from this project root:
@@ -229,10 +230,10 @@ The example file `supabase/functions/.env.example` contains placeholders only. T
 
 If `GEMINI_API_KEY` is missing, the UI receives: `AI service is not configured. Add GEMINI_API_KEY in Supabase Edge Function secrets.`
 
-### NEXT FEATURES
+### Pending
 
-- Smart categorization suggestions
-- Natural-language file search
+- Document question answering
+- Server-managed, revocable share links
 
 The AI summary requires a deployed Edge Function, a valid `GEMINI_API_KEY`, a supported configured `GEMINI_MODEL`, an authenticated session, and an extractable-text PDF.
 
@@ -263,10 +264,17 @@ The schema and deployable migration are stored in:
 - `database/schema.sql`
 - `supabase/migrations/`
 
+Review the additive migrations and explicitly apply them to the intended Supabase project. They are not executed automatically by the app.
+
 It creates:
 
 - `files`
 - `activity_logs`
+- `folders`
+- `file_tags`
+- `file_versions`
+- `share_links`
+- favorite and recycle-bin metadata on `files`
 - indexes
 - row-level security policies
 
@@ -283,23 +291,31 @@ Add screenshots here later, for example:
 
 ## Future Enhancements
 
-- Smart document categorization
-- Search using natural-language queries
-- OCR and text extraction
-- File recommendations and duplicate cleanup tools
-- Supabase Edge Functions integration with an AI inference service
+- Folder browsing and move controls in the UI
+- Tag management UI and tag filtering
+- File version upload, history, and restore flows
+- Managed, revocable share links
+- Document question answering and OCR
 
 ## Testing
 
-This is a browser-based project, so testing is primarily manual:
+No automated test runner is configured. After reviewing and applying the migrations to the intended Supabase project, run the app locally:
 
-- Registration and login
-- Upload and file listing
-- Download and delete actions
-- Signed link sharing
-- Duplicate detection
-- Search and filter behavior
-- Responsive layout checks on mobile and desktop
+```bash
+python -m http.server 5500
+```
+
+Open `http://localhost:5500`, then test:
+
+1. Register and sign in with a test account.
+2. Select several supported files and upload them together; repeat by dropping several files onto the upload area.
+3. Upload the same file again. Confirm duplicate detection reports the existing file; temporarily disconnect the database and confirm upload fails rather than treating the file as unique.
+4. Preview PDF, image, text, video, and audio files; download an unsupported format.
+5. Search and sort the file list, rename a file, and toggle its favorite state.
+6. Move a file to the recycle bin, restore it, then test permanent deletion only on a disposable file.
+7. Sign in as a second test user and confirm neither account can list or download the other's files.
+8. Configure Gemini secrets and deploy both Edge Functions before testing AI; without those prerequisites the UI should show the service configuration error.
+9. Verify displayed storage is derived from file metadata and that no per-user quota is claimed.
 
 ## Project Workflow
 

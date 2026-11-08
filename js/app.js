@@ -1,18 +1,23 @@
-import { BUCKET_NAME, STORAGE_CAPACITY, supabaseClient } from "./config.js";
+import { BUCKET_NAME, supabaseClient } from "./config.js";
 import { signUp, signIn, signOutUser, getSession } from "./auth.js";
 import {
-  uploadFileToCloud,
+  uploadFilesToCloud,
   listUserFiles,
   downloadFile,
   createSignedShareLink,
-  deleteStoredFile,
+  moveFileToTrash,
+  listTrashedFiles,
+  restoreFileFromTrash,
+  permanentlyDeleteStoredFile,
+  setFileFavorite,
+  renameStoredFile,
   generatePreviewForFile
 } from "./storage.js";
 import { renderSummaryCards, renderStorageUsage, renderFileList, renderRecentActivity } from "./dashboard.js";
 import { buildAnalytics, renderAnalyticsChart } from "./analytics.js";
 import { filterFiles } from "./search.js";
 import { getRecentActivity, logActivity } from "./activity.js";
-import { validateFile, computeFileHash, formatFileSize } from "./edge.js";
+import { formatFileSize } from "./edge.js";
 import { initializeAppearance } from "./appearance.js";
 import { extractPdfText, generateDocumentSummary, searchFilesWithAI } from "./ai.js";
 
@@ -147,54 +152,20 @@ function bindUploadActions() {
   uploadBrowseBtn.addEventListener("click", () => fileInput.click());
 
   fileInput.addEventListener("change", () => {
-    const selectedFile = fileInput.files?.[0];
-    if (selectedFile) {
-      setStatus(`${selectedFile.name} selected for upload.`);
+    const selectedFiles = Array.from(fileInput.files || []);
+    if (selectedFiles.length) {
+      setStatus(`${selectedFiles.length} file${selectedFiles.length === 1 ? "" : "s"} selected for upload.`);
     }
   });
 
   uploadBtn.addEventListener("click", async () => {
-    if (!currentUser) {
-      showToast("Please log in before uploading files.", "error");
-      return;
-    }
-
-    const selectedFile = fileInput.files?.[0];
-    if (!selectedFile) {
+    const selectedFiles = Array.from(fileInput.files || []);
+    if (!selectedFiles.length) {
       showToast("Please select a file to upload.", "error");
       return;
     }
 
-    const validation = validateFile(selectedFile);
-    if (!validation.valid) {
-      showToast(validation.message, "error");
-      return;
-    }
-
-    uploadBtn.disabled = true;
-    setStatus("Uploading file...");
-
-    const result = await uploadFileToCloud(selectedFile, currentUser);
-    uploadBtn.disabled = false;
-
-    if (!result.ok) {
-      if (result.duplicate) {
-        const duplicateDetail = result.detail || `Existing file: ${result.existingFileName || "unknown file"}`;
-        showToast(`${result.message} ${duplicateDetail}`, "error");
-        setStatus("Duplicate file detected.");
-        await logActivity(currentUser.id, "DUPLICATE_DETECTED", null, selectedFile.name);
-      } else {
-        showToast(result.message || "Upload failed. Please try again.", "error");
-        setStatus(result.message || "Upload failed. Please try again.");
-      }
-      return;
-    }
-
-    fileInput.value = "";
-    await logActivity(currentUser.id, "UPLOAD", result.file.id, selectedFile.name);
-    showToast("File uploaded successfully.", "success");
-    setStatus("File uploaded successfully.");
-    await loadDashboard();
+    await uploadSelectedFiles(selectedFiles);
   });
 
   uploadDropZone.addEventListener("dragover", (event) => {
@@ -209,13 +180,63 @@ function bindUploadActions() {
   uploadDropZone.addEventListener("drop", async (event) => {
     event.preventDefault();
     uploadDropZone.classList.remove("drag-over");
-    const droppedFile = event.dataTransfer?.files?.[0];
-    if (!droppedFile) return;
-    fileInput.files = event.dataTransfer.files;
-    setStatus(`${droppedFile.name} selected for upload.`);
+    const droppedFiles = Array.from(event.dataTransfer?.files || []);
+    if (!droppedFiles.length) return;
+    await uploadSelectedFiles(droppedFiles);
   });
 
   uploadDropZone.addEventListener("click", () => fileInput.click());
+}
+
+async function uploadSelectedFiles(files) {
+  if (!currentUser) {
+    showToast("Please log in before uploading files.", "error");
+    return;
+  }
+
+  uploadBtn.disabled = true;
+  setStatus(`Uploading ${files.length} file${files.length === 1 ? "" : "s"}...`);
+  setEdgeProcessingStatus("Validating, hashing and checking selected files before upload.", "Processing");
+
+  try {
+    const results = await uploadFilesToCloud(files, currentUser);
+    let uploadedCount = 0;
+    let duplicateCount = 0;
+
+    for (const { file, result } of results) {
+      if (result.ok) {
+        uploadedCount += 1;
+        await logActivity(currentUser.id, "UPLOAD", result.file.id, file.name);
+      } else {
+        if (result.duplicate) {
+          duplicateCount += 1;
+          await logActivity(currentUser.id, "DUPLICATE_DETECTED", null, file.name);
+        }
+        showToast(`${file.name}: ${result.message}`, "error");
+      }
+    }
+
+    fileInput.value = "";
+    if (uploadedCount) {
+      showToast(`${uploadedCount} file${uploadedCount === 1 ? "" : "s"} uploaded successfully.`, "success");
+      await loadDashboard();
+    }
+
+    const failedCount = results.length - uploadedCount;
+    const summary = `${uploadedCount} uploaded, ${failedCount} failed${duplicateCount ? ` (${duplicateCount} duplicate${duplicateCount === 1 ? "" : "s"})` : ""}.`;
+    setStatus(summary);
+    setEdgeProcessingStatus(summary, "Complete");
+  } finally {
+    uploadBtn.disabled = false;
+  }
+}
+
+function setEdgeProcessingStatus(message, state) {
+  const dashboardStatus = document.getElementById("edgeProcessingStatus");
+  if (dashboardStatus) dashboardStatus.textContent = message;
+
+  const pipelineStatus = document.getElementById("edgePipelineStatus");
+  if (pipelineStatus) pipelineStatus.textContent = state;
 }
 
 function bindSearchControls() {
@@ -498,6 +519,7 @@ function navigateToPage(page) {
     shared: ["Shared Files", "Private links and sharing activity."],
     activity: ["Recent Activity", "A timeline of events in your workspace."],
     analytics: ["Analytics", "Live metrics calculated from your workspace."],
+    trash: ["Recycle Bin", "Restore or permanently delete trashed files."],
     edge: ["Edge Processing", "How browser-side processing works with the cloud."],
     ai: ["AI Insights", "Planned document intelligence capabilities."],
     settings: ["Settings", "Account and workspace information."]
@@ -515,6 +537,7 @@ function navigateToPage(page) {
   document.getElementById("sidebar").classList.remove("sidebar-open");
   document.getElementById("sidebarToggle").setAttribute("aria-expanded", "false");
   if (page === "shared") renderSharedFiles();
+  if (page === "trash") renderTrashFiles();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -620,16 +643,21 @@ async function loadDashboard() {
 
   showDashboardView();
 
-  const { files } = await listUserFiles(currentUser.id);
-  currentFiles = files;
+  const fileResult = await listUserFiles(currentUser.id);
+  if (fileResult.error) {
+    showToast(`Could not load your files: ${fileResult.error.message}`, "error");
+    setStatus("File listing is unavailable. Check your connection and database migration.");
+    return;
+  }
+  currentFiles = fileResult.files;
   refreshAISummaryFileOptions();
 
   const activityItems = await getRecentActivity(currentUser.id, 100);
   currentActivities = activityItems;
 
-  const analytics = buildAnalytics(files, activityItems);
+  const analytics = buildAnalytics(currentFiles, activityItems);
   renderSummaryCards(analytics);
-  renderStorageUsage(analytics.totalStorage, STORAGE_CAPACITY);
+  renderStorageUsage(analytics.totalStorage);
   renderRecentActivity(activityItems.slice(0, 5));
   renderRecentActivity(activityItems, "activityFullList");
   document.getElementById("analyticsChart").innerHTML = renderAnalyticsChart(analytics.categoryCounts);
@@ -664,17 +692,36 @@ function renderVisibleFiles() {
       const confirmed = window.confirm("Are you sure you want to delete this file?");
       if (!confirmed) return;
 
-      const result = await deleteStoredFile(file);
+      const result = await moveFileToTrash(file);
       if (!result.ok) {
         showToast(result.message, "error");
         return;
       }
 
-      await logActivity(currentUser.id, "DELETE", file.id, file.file_name);
-      showToast("File deleted successfully.", "success");
+      await logActivity(currentUser.id, "TRASH", file.id, file.file_name);
+      showToast("File moved to the recycle bin.", "success");
       await loadDashboard();
     },
-    (file, button) => startAISummary({ storedFile: file, triggerButton: button })
+    (file, button) => startAISummary({ storedFile: file, triggerButton: button }),
+    async (file) => {
+      const result = await setFileFavorite(file, !file.is_favorite);
+      if (!result.ok) {
+        showToast(result.message, "error");
+        return;
+      }
+      await loadDashboard();
+    },
+    async (file) => {
+      const newName = window.prompt("Enter a new file name:", file.file_name);
+      if (newName === null || newName.trim() === file.file_name) return;
+      const result = await renameStoredFile(file, newName);
+      if (!result.ok) {
+        showToast(result.message, "error");
+        return;
+      }
+      showToast("File renamed.", "success");
+      await loadDashboard();
+    }
   ];
   renderFileList(filteredFiles, ...actions, "fileList");
   renderFileList(filteredFiles.slice(0, 5), ...actions, "recentFilesList");
@@ -686,16 +733,11 @@ function renderAnalyticsSummary(analytics, activityItems) {
   document.getElementById("analyticsStorageUsed").textContent = formatSize(analytics.totalStorage);
   document.getElementById("analyticsSharedFiles").textContent = String(analytics.sharedCount);
   document.getElementById("analyticsDuplicateFiles").textContent = String(analytics.duplicateCount);
-  const percentage = Math.min(100, Math.max(0, (analytics.totalStorage / STORAGE_CAPACITY) * 100));
-  document.getElementById("analyticsStorageProgress").style.width = `${percentage}%`;
-  document.getElementById("analyticsStorageStatus").textContent = `${Math.round(percentage)}%`;
   document.getElementById("analyticsUsedStorage").textContent = formatSize(analytics.totalStorage);
-  document.getElementById("analyticsAvailableStorage").textContent = formatSize(Math.max(STORAGE_CAPACITY - analytics.totalStorage, 0));
   document.getElementById("settingsStorageUsed").textContent = formatSize(analytics.totalStorage);
-  document.getElementById("settingsStorageAvailable").textContent = formatSize(Math.max(STORAGE_CAPACITY - analytics.totalStorage, 0));
   document.getElementById("settingsEmail").textContent = currentUser?.email || "Not signed in";
   document.getElementById("analyticsChart").innerHTML = renderAnalyticsChart(analytics.categoryCounts);
-  const actions = ["LOGIN", "LOGOUT", "UPLOAD", "DOWNLOAD", "DELETE", "SHARE", "DUPLICATE_DETECTED", "AI_SUMMARY", "AI_CATEGORIZATION", "AI_SEARCH"];
+  const actions = ["LOGIN", "LOGOUT", "UPLOAD", "DOWNLOAD", "TRASH", "SHARE", "DUPLICATE_DETECTED", "AI_SUMMARY", "AI_CATEGORIZATION", "AI_SEARCH"];
   document.getElementById("analyticsActivitySummary").innerHTML = actions.map((action) => {
     const count = activityItems.filter((item) => item.action === action).length;
     const label = action === "AI_SUMMARY" ? "AI SUMMARY" : action === "AI_CATEGORIZATION" ? "AI CATEGORIZATION" : action === "AI_SEARCH" ? "AI SEARCH" : action.replaceAll("_", " ");
@@ -733,12 +775,73 @@ function renderSharedFiles() {
   });
 }
 
+async function renderTrashFiles() {
+  const container = document.getElementById("trashFileList");
+  if (!container || !currentUser) return;
+
+  const { files, error } = await listTrashedFiles(currentUser.id);
+  if (error) {
+    console.error("Trash listing failed:", error);
+    container.innerHTML = `<div class="empty-state">Could not load recycle bin: ${escapeHtml(error.message)}</div>`;
+    return;
+  }
+  if (!files.length) {
+    container.innerHTML = '<div class="empty-state">Recycle bin is empty.</div>';
+    return;
+  }
+
+  container.innerHTML = files.map((file) => `
+    <article class="file-item">
+      <div class="file-main"><div class="file-text">
+        <p class="file-name">${escapeHtml(file.file_name)}</p>
+        <div class="file-meta"><span>${escapeHtml(file.file_type || "File")}</span><span>${formatFileSize(Number(file.file_size || 0))}</span><span>Deleted ${file.deleted_at ? new Date(file.deleted_at).toLocaleDateString() : "date unavailable"}</span></div>
+      </div></div>
+      <div class="file-actions">
+        <button class="button button-outline" type="button" data-restore-file="${escapeHtml(file.id)}">Restore</button>
+        <button class="button button-quiet" type="button" data-permanently-delete="${escapeHtml(file.id)}">Delete permanently</button>
+      </div>
+    </article>
+  `).join("");
+
+  container.querySelectorAll("[data-restore-file]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const file = files.find((item) => String(item.id) === button.dataset.restoreFile);
+      if (!file) return;
+      const result = await restoreFileFromTrash(file);
+      if (!result.ok) {
+        showToast(result.message, "error");
+        return;
+      }
+      await logActivity(currentUser.id, "RESTORE", file.id, file.file_name);
+      showToast("File restored.", "success");
+      await loadDashboard();
+      await renderTrashFiles();
+    });
+  });
+
+  container.querySelectorAll("[data-permanently-delete]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const file = files.find((item) => String(item.id) === button.dataset.permanentlyDelete);
+      if (!file || !window.confirm(`Permanently delete "${file.file_name}"? This cannot be undone.`)) return;
+      const result = await permanentlyDeleteStoredFile(file);
+      if (!result.ok) {
+        showToast(result.message, "error");
+        return;
+      }
+      await logActivity(currentUser.id, "DELETE", file.id, file.file_name);
+      showToast("File permanently deleted.", "success");
+      await loadDashboard();
+      await renderTrashFiles();
+    });
+  });
+}
+
 async function queryFilesByAiFilters(userId, filters, explanation = "") {
   if (!userId) {
     throw new Error("Please log in before searching your files.");
   }
 
-  let query = supabaseClient.from("files").select("*").eq("user_id", userId);
+  let query = supabaseClient.from("files").select("*").eq("user_id", userId).is("deleted_at", null);
 
   if (filters?.category) {
     query = query.or(`ai_suggested_category.eq.${filters.category},category.eq.${filters.category}`);
@@ -867,6 +970,25 @@ async function openPreview(file) {
     const { data, error } = await supabaseClient.storage.from(BUCKET_NAME).download(file.storage_path);
     if (error) {
       showToast("Unable to preview this image.", "error");
+      return;
+    }
+
+    if (preview.kind === "video" || preview.kind === "audio") {
+      const { data, error } = await supabaseClient.storage.from(BUCKET_NAME).download(file.storage_path);
+      if (error) {
+        showToast(`Unable to preview this media: ${error.message}`, "error");
+        return;
+      }
+
+      const mediaUrl = URL.createObjectURL(data);
+      const media = document.createElement(preview.kind);
+      media.src = mediaUrl;
+      media.controls = true;
+      media.preload = "metadata";
+      media.className = "preview-file";
+      previewContent.appendChild(media);
+      previewModal.classList.remove("hidden");
+      previewModal.setAttribute("aria-hidden", "false");
       return;
     }
 

@@ -44,6 +44,8 @@ export function formatActionLabel(action) {
     UPLOAD: "Uploaded",
     DOWNLOAD: "Downloaded",
     DELETE: "Deleted",
+    TRASH: "Moved to recycle bin",
+    RESTORE: "Restored",
     SHARE: "Shared",
     AI_SUMMARY: "Generated AI summary for",
     AI_CATEGORIZATION: "Categorized",

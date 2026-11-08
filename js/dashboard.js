@@ -8,21 +8,12 @@ export function renderSummaryCards(summary) {
   document.getElementById("duplicateFilesValue").textContent = String(summary.duplicateCount || 0);
 }
 
-export function renderStorageUsage(usedBytes, totalBytes = 5 * 1024 * 1024 * 1024) {
-  const percentage = Math.min(100, Math.max(0, (usedBytes / totalBytes) * 100));
-
-  const progress = document.getElementById("storageProgress");
-  const status = document.getElementById("storageStatusText");
+export function renderStorageUsage(usedBytes) {
   const used = document.getElementById("usedStorageValue");
-  const available = document.getElementById("availableStorageValue");
-
-  progress.style.width = `${percentage}%`;
-  status.textContent = `${Math.round(percentage)}%`;
-  used.textContent = formatFileSize(usedBytes);
-  available.textContent = formatFileSize(Math.max(totalBytes - usedBytes, 0));
+  if (used) used.textContent = formatFileSize(usedBytes);
 }
 
-export function renderFileList(files, onPreview, onDownload, onShare, onDelete, onAiSummary, containerId = "fileList") {
+export function renderFileList(files, onPreview, onDownload, onShare, onDelete, onAiSummary, onFavorite, onRename, containerId = "fileList") {
   const container = document.getElementById(containerId);
 
   if (!files || files.length === 0) {
@@ -45,9 +36,12 @@ export function renderFileList(files, onPreview, onDownload, onShare, onDelete, 
       const aiSummaryButton = isPdf
         ? `<button class="file-action-btn ai-summary-action" data-action="ai-summary" data-file-id="${safeId}" aria-label="AI Summary for ${safeName}" title="Generate AI Summary">✦ <span>AI Summary</span></button>`
         : "";
+      const favoriteButton = `<button class="file-action-btn" data-action="favorite" data-file-id="${safeId}" aria-label="${file.is_favorite ? "Remove from" : "Add to"} favorites: ${safeName}" title="${file.is_favorite ? "Remove from" : "Add to"} favorites">${file.is_favorite ? "★" : "☆"}</button>`;
       const actions = `
         <div class="file-actions">
           <button class="file-action-btn preview" data-action="preview" data-file-id="${safeId}" aria-label="Open ${safeName}" title="Open file">↗</button>
+          ${favoriteButton}
+          <button class="file-action-btn" data-action="rename" data-file-id="${safeId}" aria-label="Rename ${safeName}" title="Rename">✎</button>
           ${aiSummaryButton}
           <button class="file-action-btn download" data-action="download" data-file-id="${safeId}" aria-label="Download ${safeName}" title="Download">↓</button>
           <button class="file-action-btn share" data-action="share" data-file-id="${safeId}" aria-label="Share ${safeName}" title="Share">↗</button>
@@ -86,6 +80,8 @@ export function renderFileList(files, onPreview, onDownload, onShare, onDelete, 
       if (action === "download") onDownload(file);
       if (action === "share") onShare(file);
       if (action === "delete") onDelete(file);
+      if (action === "favorite" && onFavorite) onFavorite(file);
+      if (action === "rename" && onRename) onRename(file);
     });
   });
 }
@@ -115,7 +111,7 @@ export function renderRecentActivity(items, containerId = "activityList") {
 }
 
 function getActivityMark(action) {
-  const marks = { LOGIN: "↪", LOGOUT: "↗", UPLOAD: "↑", DOWNLOAD: "↓", DELETE: "×", SHARE: "↗", DUPLICATE_DETECTED: "⧉" };
+  const marks = { LOGIN: "↪", LOGOUT: "↗", UPLOAD: "↑", DOWNLOAD: "↓", DELETE: "×", TRASH: "⌫", RESTORE: "↶", SHARE: "↗", DUPLICATE_DETECTED: "⧉" };
   return marks[action] || "•";
 }
 
