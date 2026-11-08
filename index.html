@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="IntelliVault – Intelligent Cloud-Based File Storage, Secure Sharing and Edge-Assisted File Management System"
+    />
+    <title>IntelliVault – Intelligent Cloud-Based File Storage</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <main id="authScreen" class="auth-screen">
+        <div class="auth-panel">
+          <div class="auth-header">
+            <span class="eyebrow">Secure access</span>
+            <h2>Welcome to IntelliVault</h2>
+            <p>Intelligent Cloud-Based File Storage and Secure Sharing</p>
+          </div>
+
+          <form id="registerForm" class="auth-form" novalidate>
+            <label for="registerEmail">Email</label>
+            <input id="registerEmail" type="email" placeholder="name@example.com" required />
+
+            <label for="registerPassword">Password</label>
+            <input id="registerPassword" type="password" placeholder="Create a password" required />
+
+            <button id="registerBtn" class="button button-primary" type="submit" data-action="register">
+              Create account
+            </button>
+          </form>
+
+          <div class="divider"><span>or</span></div>
+
+          <form id="loginForm" class="auth-form" novalidate>
+            <label for="loginEmail">Email</label>
+            <input id="loginEmail" type="email" placeholder="name@example.com" required />
+
+            <label for="loginPassword">Password</label>
+            <input id="loginPassword" type="password" placeholder="Enter your password" required />
+
+            <button id="loginBtn" class="button button-success" type="submit" data-action="login">
+              Login
+            </button>
+          </form>
+        </div>
+      </main>
+
+      <main id="dashboardScreen" class="dashboard-shell hidden">
+        <aside id="sidebar" class="sidebar" aria-label="Main navigation">
+          <a class="sidebar-brand" href="#dashboard" data-page="dashboard" aria-label="IntelliVault dashboard">
+            <span class="brand-mark" aria-hidden="true">☁</span>
+            <span>IntelliVault</span>
+          </a>
+          <nav class="sidebar-nav">
+            <p class="nav-label">Main</p>
+            <button class="nav-item active" type="button" data-page="dashboard"><span class="nav-icon">⌂</span>Dashboard</button>
+            <button class="nav-item" type="button" data-page="files"><span class="nav-icon">▤</span>My Files</button>
+            <button class="nav-item" type="button" data-page="shared"><span class="nav-icon">↗</span>Shared Files</button>
+            <button class="nav-item" type="button" data-page="activity"><span class="nav-icon">◷</span>Recent Activity</button>
+            <p class="nav-label">Insights</p>
+            <button class="nav-item" type="button" data-page="analytics"><span class="nav-icon">▥</span>Analytics</button>
+            <button class="nav-item" type="button" data-page="edge"><span class="nav-icon">⌘</span>Edge Processing</button>
+            <button class="nav-item" type="button" data-page="ai"><span class="nav-icon">✳</span>AI Insights</button>
+            <p class="nav-label">System</p>
+            <button class="nav-item" type="button" data-page="settings"><span class="nav-icon">⚙</span>Settings</button>
+            <button class="nav-item nav-logout" type="button" data-action="logout"><span class="nav-icon">↪</span>Logout</button>
+          </nav>
+          <div class="sidebar-footnote"><span class="status-dot"></span>Private cloud workspace</div>
+        </aside>
+
+        <div class="main-column">
+          <header class="top-header">
+            <button id="sidebarToggle" class="icon-button sidebar-toggle" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
+            <div class="header-page-title">
+              <h1 id="pageTitle">Dashboard</h1>
+              <p id="pageDescription">Your secure workspace at a glance.</p>
+            </div>
+            <div class="header-tools">
+              <label class="global-search"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Search your files" aria-label="Search files" /></label>
+              <button class="icon-button notification-button" type="button" data-page="activity" aria-label="View recent activity" title="Recent activity">♧</button>
+              <button id="modeToggle" class="icon-button mode-toggle" type="button" aria-label="Switch color mode">☼</button>
+              <div class="header-user"><span id="userAvatar" class="user-avatar">IV</span><span id="headerEmail">Not signed in</span></div>
+              <button id="headerLogoutBtn" class="button button-quiet hidden" type="button">Logout</button>
+            </div>
+          </header>
+
+          <div id="status" class="status-banner" aria-live="polite">Supabase connection ready.</div>
+
+          <div class="page-content">
+            <section class="page-view" data-view="dashboard">
+              <section class="page-hero">
+                <div class="hero-copy">
+                  <span class="eyebrow">Your workspace</span>
+                  <h2>Intelligent Cloud Storage</h2>
+                  <p>Secure cloud storage with edge-assisted processing and intelligent file management.</p>
+                  <div class="hero-actions">
+                    <button id="heroUploadBtn" class="button button-primary" type="button"><span aria-hidden="true">＋</span> Upload File</button>
+                    <button class="button button-outline" type="button" data-page="files">Open My Files <span aria-hidden="true">→</span></button>
+                  </div>
+                </div>
+                <div class="hero-art" aria-hidden="true"><span class="hero-cloud">☁</span><span class="hero-orbit orbit-one"></span><span class="hero-orbit orbit-two"></span><span class="hero-spark">✦</span></div>
+              </section>
+
+              <section class="summary-grid" aria-label="Storage summary">
+                <article class="summary-card"><span class="summary-icon">▤</span><span class="summary-label">Total Files</span><strong id="totalFilesValue">0</strong><span class="summary-foot">In your workspace</span></article>
+                <article class="summary-card"><span class="summary-icon mint">◫</span><span class="summary-label">Storage Used</span><strong id="totalStorageValue">0 MB</strong><span class="summary-foot">Across all files</span></article>
+                <article class="summary-card"><span class="summary-icon cyan">↗</span><span class="summary-label">Shared Files</span><strong id="sharedFilesValue">0</strong><span class="summary-foot">Unique files shared</span></article>
+                <article class="summary-card"><span class="summary-icon amber">⧉</span><span class="summary-label">Duplicate Files</span><strong id="duplicateFilesValue">0</strong><span class="summary-foot">Matching file hashes</span></article>
+              </section>
+
+              <section class="quick-actions" aria-label="Quick actions">
+                <button class="quick-action" type="button" id="quickUploadBtn"><span class="quick-icon">＋</span><span><strong>Upload File</strong><small>Add to your vault</small></span><span class="quick-arrow">→</span></button>
+                <button class="quick-action" type="button" id="quickSearchBtn"><span class="quick-icon">⌕</span><span><strong>Search Files</strong><small>Find something quickly</small></span><span class="quick-arrow">→</span></button>
+                <button class="quick-action" type="button" data-page="shared"><span class="quick-icon">↗</span><span><strong>Shared Files</strong><small>Review sharing activity</small></span><span class="quick-arrow">→</span></button>
+              </section>
+
+              <section class="overview-grid">
+                <article class="panel overview-files"><div class="panel-header"><div><span class="panel-kicker">Workspace</span><h3>Recent Files</h3></div><button class="text-button" type="button" data-page="files">View all <span aria-hidden="true">→</span></button></div><div id="recentFilesList" class="file-list" aria-live="polite"></div></article>
+                <article class="panel"><div class="panel-header"><div><span class="panel-kicker">Your account</span><h3>Recent Activity</h3></div><button class="text-button" type="button" data-page="activity">View all <span aria-hidden="true">→</span></button></div><div id="activityList" class="activity-list"></div></article>
+              </section>
+
+              <section class="overview-grid lower-grid">
+                <article class="panel storage-panel"><div class="panel-header"><div><span class="panel-kicker">Capacity</span><h3>Storage Overview</h3></div><span id="storageStatusText" class="usage-percent">0%</span></div><div class="storage-meter" aria-label="Storage usage indicator"><div id="storageProgress" class="storage-fill"></div></div><div class="storage-legend"><span><strong id="usedStorageValue">0 MB</strong> used</span><span><strong id="availableStorageValue">5 GB</strong> available</span></div><button class="text-button" type="button" data-page="analytics">View analytics <span aria-hidden="true">→</span></button></article>
+                <article class="panel edge-panel"><div class="panel-header"><div><span class="panel-kicker">Local-first pipeline</span><h3>Edge Processing</h3></div><button class="text-button" type="button" data-page="edge">Details <span aria-hidden="true">→</span></button></div><ul class="feature-list"><li><span>✓</span>File Validation</li><li><span>✓</span>SHA-256 Hashing</li><li><span>✓</span>Duplicate Detection</li></ul><p class="edge-note">Files are checked in your browser before cloud upload.</p></article>
+              </section>
+
+              <section class="panel ai-preview"><div class="ai-preview-title"><span class="ai-mark">✳</span><div><span class="panel-kicker">AI Document Intelligence</span><h3>AI-powered file intelligence</h3></div><span class="implemented-badge">Implemented</span></div><div class="ai-preview-items"><span>PDF / Document Summarization</span><span>Smart Categorization</span><span>Natural-language File Search</span></div></section>
+
+              <section class="panel upload-panel" aria-label="Upload files"><div class="panel-header"><div><span class="panel-kicker">Secure transfer</span><h3>Upload a file</h3></div></div><div id="uploadDropZone" class="upload-dropzone" tabindex="0" aria-label="Upload area"><div class="upload-icon">↑</div><p><strong>Drop a file here</strong></p><p>or browse from your device</p><input id="fileInput" type="file" hidden /><button id="uploadBrowseBtn" class="button button-outline" type="button">Choose file</button></div><div class="upload-controls"><button id="uploadBtn" class="button button-primary" type="button">Upload file</button><span id="uploadHint" class="upload-hint">Maximum size: 50 MB</span></div></section>
+            </section>
+
+            <section class="page-view hidden" data-view="files">
+              <div class="view-heading"><div><span class="panel-kicker">Your workspace</span><h2>My Files</h2><p>Search, organize, and manage files in your private vault.</p></div><button class="button button-primary" type="button" id="filesUploadBtn">＋ Upload File</button></div>
+              <section class="panel files-panel"><div class="toolbar-row"><label class="field-search"><span aria-hidden="true">⌕</span><input id="filesSearchInput" type="search" placeholder="Search files..." aria-label="Search files" /></label><select id="fileTypeFilter" aria-label="Filter by file type"><option value="all">All types</option><option>PDF</option><option>Text</option><option>Document</option><option>Spreadsheet</option><option>Presentation</option><option>Image</option><option>Video</option><option>Audio</option><option>Archive</option><option>Code</option><option>Other</option></select><select id="categoryFilter" aria-label="Filter by category"><option value="all">All categories</option><option value="Documents">Documents</option><option value="Spreadsheets">Spreadsheets</option><option value="Presentation">Presentation</option><option value="Images">Images</option><option value="Videos">Videos</option><option value="Audio">Audio</option><option value="Archives">Archives</option><option value="Code">Code</option><option value="Other">Other</option></select><select id="sortSelect" aria-label="Sort files"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="largest">Largest first</option><option value="smallest">Smallest first</option><option value="name-asc">Name A-Z</option></select></div><div id="fileList" class="file-list table-file-list" aria-live="polite"></div></section>
+            </section>
+
+            <section class="page-view hidden" data-view="shared">
+              <div class="view-heading"><div><span class="panel-kicker">Secure sharing</span><h2>Shared Files</h2><p>Review files with recorded share activity and create private signed links.</p></div></div>
+              <div class="notice-banner"><span>i</span><p>Links are generated on demand and are not stored. Signed links are read-only and expire automatically; the current setup does not support early revocation.</p></div>
+              <section class="panel"><div class="panel-header"><div><span class="panel-kicker">From your activity log</span><h3>Recently shared</h3></div></div><div id="sharedFilesList" class="shared-list"></div></section>
+            </section>
+
+            <section class="page-view hidden" data-view="activity">
+              <div class="view-heading"><div><span class="panel-kicker">Account history</span><h2>Recent Activity</h2><p>Events recorded for your IntelliVault account.</p></div></div>
+              <section class="panel"><div class="panel-header"><div><span class="panel-kicker">Latest events</span><h3>Activity log</h3></div></div><div id="activityFullList" class="activity-list activity-full-list"></div></section>
+            </section>
+
+            <section class="page-view hidden" data-view="analytics">
+              <div class="view-heading"><div><span class="panel-kicker">Workspace metrics</span><h2>Analytics</h2><p>A live snapshot calculated from your files and activity log.</p></div></div>
+              <section class="summary-grid analytics-summary" aria-label="Analytics summary"><article class="summary-card"><span class="summary-icon">▤</span><span class="summary-label">Total Files</span><strong id="analyticsTotalFiles">0</strong></article><article class="summary-card"><span class="summary-icon mint">◫</span><span class="summary-label">Storage Used</span><strong id="analyticsStorageUsed">0 B</strong></article><article class="summary-card"><span class="summary-icon cyan">↗</span><span class="summary-label">Shared Files</span><strong id="analyticsSharedFiles">0</strong></article><article class="summary-card"><span class="summary-icon amber">⧉</span><span class="summary-label">Duplicate Files</span><strong id="analyticsDuplicateFiles">0</strong></article></section>
+              <section class="overview-grid analytics-grid"><article class="panel"><div class="panel-header"><div><span class="panel-kicker">Distribution</span><h3>File Categories</h3></div></div><div id="analyticsChart" class="analytics-chart"></div></article><article class="panel"><div class="panel-header"><div><span class="panel-kicker">Capacity</span><h3>Storage Usage</h3></div><span id="analyticsStorageStatus" class="usage-percent">0%</span></div><div class="storage-meter"><div id="analyticsStorageProgress" class="storage-fill"></div></div><div class="storage-legend"><span><strong id="analyticsUsedStorage">0 B</strong> used</span><span><strong id="analyticsAvailableStorage">5 GB</strong> available</span></div></article></section>
+              <section class="panel analytics-activity-panel"><div class="panel-header"><div><span class="panel-kicker">Account events</span><h3>Activity Summary</h3></div></div><div id="analyticsActivitySummary" class="activity-summary"></div></section>
+            </section>
+
+            <section class="page-view hidden" data-view="edge">
+              <div class="view-heading"><div><span class="panel-kicker">Cloud + edge computing</span><h2>Edge Processing</h2><p>IntelliVault performs lightweight checks in the browser before securely sending files to the cloud.</p></div><span class="pipeline-status"><span class="status-dot"></span>Active pipeline</span></div>
+              <section class="panel pipeline-panel"><div class="panel-header"><div><span class="panel-kicker">Client-side workflow</span><h3>File processing pipeline</h3></div></div><ol class="pipeline-steps"><li><span>01</span><strong>File</strong><small>Selected on your device</small></li><li><span>02</span><strong>Browser validation</strong><small>Type, name, size checks</small></li><li><span>03</span><strong>Metadata extraction</strong><small>Type, category, size</small></li><li><span>04</span><strong>SHA-256 hashing</strong><small>Computed locally</small></li><li><span>05</span><strong>Duplicate detection</strong><small>Hash checked against your files</small></li><li><span>06</span><strong>Cloud upload</strong><small>Only after validation</small></li></ol></section>
+              <section class="cloud-destinations"><article class="panel cloud-card"><span class="cloud-card-icon">▤</span><div><span class="panel-kicker">Cloud destination</span><h3>Supabase Storage</h3><p>File objects are kept in the private user-files bucket.</p></div><span class="secure-label">Private</span></article><article class="panel cloud-card"><span class="cloud-card-icon mint">◈</span><div><span class="panel-kicker">Cloud destination</span><h3>Supabase Database</h3><p>File metadata and activity are stored under user-level access policies.</p></div><span class="secure-label">Protected</span></article><article class="panel cloud-card"><span class="cloud-card-icon cyan">↗</span><div><span class="panel-kicker">Access layer</span><h3>Secure Sharing</h3><p>Read-only signed URLs are created for a selected expiration period.</p></div><span class="secure-label">Time-limited</span></article></section>
+            </section>
+
+            <section class="page-view hidden" data-view="ai">
+              <div class="ai-hero"><span class="ai-mark large">✳</span><span class="implemented-badge">Implemented</span><h2>AI Document Intelligence</h2><p>Summarize readable PDF documents, classify them with AI, and search your vault using everyday language.</p></div>
+
+              <section class="panel ai-launch-panel"><div class="ai-launch-copy"><span class="panel-kicker">Implemented feature</span><h3>01 · PDF / Document Summarization</h3><p>Choose a PDF already in your vault or select one from this device. Existing files are read from private storage and are not uploaded again.</p></div><div class="ai-launch-controls"><label class="ai-existing-label" for="aiExistingPdf">PDF in My Files<select id="aiExistingPdf"><option value="">Choose an uploaded PDF</option></select></label><span class="ai-or">or</span><label class="button button-outline ai-select-button" for="aiPdfInput">Select PDF<input id="aiPdfInput" type="file" accept="application/pdf,.pdf" hidden></label><span id="aiSelectedPdfName" class="ai-selected-file">No PDF selected</span><button id="aiGenerateBtn" class="button button-primary" type="button" disabled>Generate AI Summary</button></div></section>
+
+              <section class="panel ai-search-panel">
+                <div class="panel-header"><div><span class="panel-kicker">Natural-language search</span><h3>🤖 Ask your files</h3></div></div>
+                <form id="aiSearchForm" class="ai-search-form"><input id="aiSearchInput" type="text" class="ai-search-input" placeholder="Show my internship-related PDFs" aria-label="Ask IntelliVault" /><button id="aiSearchBtn" class="button button-primary" type="submit">Ask IntelliVault</button></form>
+                <div id="aiSearchStatus" class="ai-search-status">Ready to search your files.</div>
+                <div id="aiSearchResults" class="ai-search-results"></div>
+              </section>
+
+              <section class="ai-planned-grid">
+                <article class="panel"><span class="planned-number">01</span><h3>PDF / Document Summarization</h3><p>Status: Implemented.</p><button class="button button-outline" type="button" id="aiSummaryDashboardBtn">Try AI Summary</button></article>
+                <article class="panel"><span class="planned-number">02</span><h3>Smart Categorization</h3><p>Status: Implemented.</p><button class="button button-outline" type="button" id="aiCategoryDashboardBtn">View AI Categories</button></article>
+                <article class="panel"><span class="planned-number">03</span><h3>Natural-language File Search</h3><p>Status: Implemented.</p><button class="button button-outline" type="button" id="aiSearchDashboardBtn">Ask Your Files</button></article>
+              </section>
+            </section>
+
+            <section class="page-view hidden" data-view="settings">
+              <div class="view-heading"><div><span class="panel-kicker">Workspace preferences</span><h2>Settings</h2><p>Account, storage, and security information for this workspace.</p></div></div>
+              <nav class="settings-tabs" aria-label="Settings sections"><button class="settings-tab active" type="button" data-settings-tab="general" aria-pressed="true">General</button><button class="settings-tab" type="button" data-settings-tab="appearance" aria-pressed="false">Appearance</button></nav>
+              <section data-settings-panel="appearance" class="appearance-settings hidden" aria-labelledby="appearanceHeading">
+                <div class="appearance-heading"><div><span class="panel-kicker">Personalize your workspace</span><h3 id="appearanceHeading">Appearance</h3><p>Choose a visual system and tune its behavior. Changes apply immediately.</p></div><span class="appearance-saved"><span class="status-dot"></span>Saved on this device</span></div>
+                <div class="appearance-section-heading"><div><h4>Theme Style</h4><p>Select a complete IntelliVault visual identity.</p></div></div>
+                <div class="theme-gallery" role="group" aria-label="Theme Style">
+                  <button class="theme-card" type="button" data-theme-choice="aurora-glass" aria-pressed="false"><span class="theme-preview" data-preview-theme="aurora-glass"><span class="preview-side"></span><span class="preview-main"><i></i><i></i><i></i></span></span><span class="theme-card-copy"><strong>Aurora Glass</strong><small>Soft light · violet / cyan</small></span><span class="theme-selected-mark" aria-hidden="true">✓</span></button>
+                  <button class="theme-card" type="button" data-theme-choice="midnight-neon" aria-pressed="false"><span class="theme-preview" data-preview-theme="midnight-neon"><span class="preview-side"></span><span class="preview-main"><i></i><i></i><i></i></span></span><span class="theme-card-copy"><strong>Midnight Neon</strong><small>Deep dark · electric blue</small></span><span class="theme-selected-mark" aria-hidden="true">✓</span></button>
+                  <button class="theme-card" type="button" data-theme-choice="cloud-mist" aria-pressed="false"><span class="theme-preview" data-preview-theme="cloud-mist"><span class="preview-side"></span><span class="preview-main"><i></i><i></i><i></i></span></span><span class="theme-card-copy"><strong>Cloud Mist</strong><small>Airy light · sky / cyan</small></span><span class="theme-selected-mark" aria-hidden="true">✓</span></button>
+                  <button class="theme-card" type="button" data-theme-choice="cyber-vault" aria-pressed="false"><span class="theme-preview" data-preview-theme="cyber-vault"><span class="preview-side"></span><span class="preview-main"><i></i><i></i><i></i></span></span><span class="theme-card-copy"><strong>Cyber Vault</strong><small>Technical · violet / green</small></span><span class="theme-selected-mark" aria-hidden="true">✓</span></button>
+                  <button class="theme-card" type="button" data-theme-choice="emerald-secure" aria-pressed="false"><span class="theme-preview" data-preview-theme="emerald-secure"><span class="preview-side"></span><span class="preview-main"><i></i><i></i><i></i></span></span><span class="theme-card-copy"><strong>Emerald Secure</strong><small>Enterprise · deep teal</small></span><span class="theme-selected-mark" aria-hidden="true">✓</span></button>
+                  <button class="theme-card" type="button" data-theme-choice="minimal-slate" aria-pressed="false"><span class="theme-preview" data-preview-theme="minimal-slate"><span class="preview-side"></span><span class="preview-main"><i></i><i></i><i></i></span></span><span class="theme-card-copy"><strong>Minimal Slate</strong><small>Neutral · restrained blue</small></span><span class="theme-selected-mark" aria-hidden="true">✓</span></button>
+                </div>
+                <div class="appearance-options">
+                  <section class="panel appearance-option"><div><h4>Mode</h4><p>Choose light, dark, or follow your device.</p></div><div class="segmented-control" role="group" aria-label="Color mode"><button type="button" data-mode-choice="light">Light</button><button type="button" data-mode-choice="dark">Dark</button><button type="button" data-mode-choice="system">System</button></div></section>
+                  <section class="panel appearance-option"><div><h4>Visual effects</h4><p>Control glow and glass surfaces.</p></div><div class="switch-options"><label class="switch-label" for="glowToggle"><span>Glow</span><input id="glowToggle" type="checkbox"><span class="switch-track" aria-hidden="true"></span></label><label class="switch-label" for="glassToggle"><span>Glass Effect</span><input id="glassToggle" type="checkbox"><span class="switch-track" aria-hidden="true"></span></label></div></section>
+                  <section class="panel appearance-option"><div><h4>Card Radius</h4><p>Set the shape of cards and controls.</p></div><div class="segmented-control" role="group" aria-label="Card Radius"><button type="button" data-radius-choice="sharp">Sharp</button><button type="button" data-radius-choice="medium">Medium</button><button type="button" data-radius-choice="rounded">Rounded</button></div></section>
+                  <section class="panel appearance-option"><div><h4>Layout Density</h4><p>Adjust spacing across workspace panels.</p></div><div class="segmented-control" role="group" aria-label="Layout Density"><button type="button" data-density-choice="comfortable">Comfortable</button><button type="button" data-density-choice="compact">Compact</button></div></section>
+                  <section class="panel appearance-option accent-option"><div><h4>Custom Accent Color</h4><p>Personalize the primary interface accent.</p></div><label class="accent-picker-label" for="accentColor"><span id="accentColorValue">Theme default</span><input id="accentColor" type="color" value="#7778f6" aria-label="Custom accent color"></label></section>
+                </div>
+              </section>
+              <section class="settings-grid"><article class="panel settings-card"><span class="settings-icon">◉</span><div><span class="panel-kicker">Account</span><h3>Account Information</h3></div><dl><dt>Email</dt><dd id="settingsEmail">Not signed in</dd><dt>Authentication</dt><dd>Supabase Auth</dd></dl></article><article class="panel settings-card"><span class="settings-icon mint">◫</span><div><span class="panel-kicker">Capacity</span><h3>Storage Information</h3></div><dl><dt>Used</dt><dd id="settingsStorageUsed">0 B</dd><dt>Available</dt><dd id="settingsStorageAvailable">5 GB</dd><dt>Maximum file size</dt><dd>50 MB</dd></dl></article><article class="panel settings-card"><span class="settings-icon cyan">◇</span><div><span class="panel-kicker">Protection</span><h3>Security Information</h3></div><dl><dt>Bucket access</dt><dd>Private</dd><dt>Sharing</dt><dd>Expiring signed URLs</dd><dt>File integrity</dt><dd>SHA-256 hash checking</dd></dl></article><article class="panel settings-card"><span class="settings-icon amber">✳</span><div><span class="panel-kicker">AI</span><h3>AI Settings</h3></div><dl><dt>AI Service</dt><dd>Not Configured</dd><dt>Document Analysis</dt><dd>Disabled</dd><dt>AI Model</dt><dd>Set GEMINI_MODEL in Supabase secrets</dd><dt>AI Features</dt><dd>✓ Summarization<br />✓ Smart Categorization<br />✓ Natural-language Search</dd></dl></article><article class="panel settings-card"><span class="settings-icon amber">ℹ</span><div><span class="panel-kicker">Product</span><h3>Application Information</h3></div><dl><dt>Application</dt><dd>IntelliVault</dd><dt>Processing</dt><dd>Browser-assisted edge pipeline</dd><dt>Cloud services</dt><dd>Supabase Storage &amp; Database</dd></dl></article></section>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div id="shareModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Share File</h3>
+          <button type="button" class="modal-close" data-close-modal="shareModal">×</button>
+        </div>
+
+        <label for="shareExpiration">Expiration</label>
+        <select id="shareExpiration">
+          <option value="3600">1 hour</option>
+          <option value="86400">1 day</option>
+          <option value="604800">7 days</option>
+        </select>
+
+        <div class="modal-actions">
+          <button id="generateShareBtn" class="button button-primary" type="button">
+            Generate link
+          </button>
+          <button id="copyShareBtn" class="button button-success hidden" type="button">
+            Copy link
+          </button>
+        </div>
+
+        <input id="shareUrlField" type="text" readonly placeholder="Secure link will appear here" />
+      </div>
+    </div>
+
+    <div id="previewModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-card preview-card">
+        <div class="modal-header">
+          <h3>File Preview</h3>
+          <button type="button" class="modal-close" data-close-modal="previewModal">×</button>
+        </div>
+        <div id="previewContent" class="preview-content"></div>
+      </div>
+    </div>
+
+    <div id="aiSummaryModal" class="modal hidden" aria-hidden="true">
+      <section class="modal-card ai-summary-card" role="dialog" aria-modal="true" aria-labelledby="aiSummaryTitle">
+        <div class="modal-header"><div><span class="panel-kicker">AI Document Intelligence</span><h3 id="aiSummaryTitle">AI Document Summary</h3></div><button type="button" class="modal-close" data-close-modal="aiSummaryModal" aria-label="Close summary">×</button></div>
+        <p class="ai-summary-document">Document: <strong id="aiSummaryFileName"></strong></p>
+        <div id="aiSummaryStatus" class="ai-summary-status" role="status" aria-live="polite"><span class="ai-status-indicator"></span><span id="aiSummaryStatusText">Preparing summary...</span></div>
+        <div id="aiSummaryError" class="ai-summary-error hidden" role="alert"></div>
+        <div id="aiSummaryResults" class="ai-summary-results hidden">
+          <section><h4>Summary</h4><p id="aiSummaryText"></p></section>
+          <section><h4>Key Points</h4><ul id="aiSummaryKeyPoints"></ul></section>
+          <section><h4>Important Topics</h4><ul id="aiSummaryImportantTopics"></ul></section>
+          <div class="ai-detected-type"><span>Document Type</span><strong id="aiSummaryDocumentType"></strong></div>
+          <div class="ai-detected-type"><span>AI Category</span><strong id="aiSummaryCategory"></strong></div>
+        </div>
+        <div class="modal-actions ai-summary-actions"><button class="button button-outline" type="button" data-close-modal="aiSummaryModal">Close</button></div>
+      </section>
+    </div>
+
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
